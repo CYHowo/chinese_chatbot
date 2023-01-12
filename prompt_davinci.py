@@ -315,65 +315,57 @@ def train(model_train, inputs_id, mask, tokenizer, ll, args, batch_size):
 # -
 
 def main():
-    parser = ArgumentParser()
+    parser = ArgumentParser() ## 初始化一個分析器
     parser.add_argument("--data_path", type=str, default='data/train-v4.tsv')
-#     parser.add_argument("--val_data_path", type=str, default='/work/u7930486/data/traditional_corpus/valid-v4.tsv')
-#     parser.add_argument("--writer", type=str, default="")
     parser.add_argument("--sample_per_batch", type=int, default=5)
-    parser.add_argument("--save", type=str, default="prompt_davinci_length")
+    parser.add_argument("--save", type=str, default="prompt_davinci_emotion")
     parser.add_argument("--model", type=str, default="ckiplab/gpt2-base-chinese")
-    parser.add_argument("--ra", type=float, default=50)
+    parser.add_argument("--ra", type=float, default=50)  ##??
     parser.add_argument("--inter", type=str, default="gpt", nargs='+', required=True)
     parser.add_argument("--setting", type=int, default=1)
     parser.add_argument("--dependence", type=bool, default=True)
     parser.add_argument("--api", type=str, default=None)
 
-    args = parser.parse_args()
+    args = parser.parse_args() ## 回傳資料
     if args.api == None:
         print("You should enter your open ai api to use this model")
         raise
 
     os.makedirs(os.path.join('models', args.save), exist_ok=True)
     
-    wandb.init(project=args.save, entity="chatbot")
+    wandb.init(
+      # Set the project where this run will be logged
+      project="ChineseChatbot_davinci", 
+      # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
+      name=f"{args.save}",
+      entity="iisrcyh"
+      )
+    
+    # wandb.init(project=args.save, entity="chatbot")
+    
     wandb.login()
     wandb.config.update(args)
     
+    ## 將隨機數字固定
     np.random.seed(100)
     torch.random.manual_seed(100)
     torch.cuda.manual_seed(100)
     model_train = GPT2LMHeadModel.from_pretrained('ckiplab/gpt2-base-chinese')
-    # model_train.load_state_dict(torch.load(args.model))
-    # model_2 = GPT2LMHeadModel.from_pretrained('ckiplab/gpt2-base-chinese')
-    # model_2.load_state_dict(torch.load(args.model))
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-chinese')
 
-    # special_tokens_dict = {'eos_token': '[EOS]'}
-    # tokenizer.add_special_tokens(special_tokens_dict)
-
-
-    # if 'gpt' in args.inter:
-    #     model_bot = GPT2LMHeadModel.from_pretrained('ckiplab/gpt2-base-chinese')
-    #     model_bot.load_state_dict(torch.load(args.model))
-    #     model_bot.to(device_1)
-    #     model_bot.eval()
-
-    writer = SummaryWriter(os.path.join('runs', args.save))
     param_optimizer = list(model_train.named_parameters())
     no_decay = ['bias', 'ln']   # no decay for bias and LayerNorm (ln)
     optimizer_grouped_parameters = [
-        {'params': [p for n, p in param_optimizer
-                    if not any(nd in n for nd in no_decay)],
+        {'params': [param for name, param in param_optimizer
+                    if not any(nd in name for nd in no_decay)], 
         'weight_decay': 0.01},
-        {'params': [p for n, p in param_optimizer
-                    if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
+        {'params': [param for name, param in param_optimizer
+                    if any(nd in name for nd in no_decay)], 'weight_decay': 0.0}]
 
     optimizer = Adam(optimizer_grouped_parameters, 5e-6,
-                     max_grad_norm=1.0)
+                     max_grad_norm=1.0) ## 梯度截斷
 
     model_train.to(device_0)
-    # model_2.to(device_1)
-    # model_2.eval()
     batch_size = 8
 
     
@@ -388,7 +380,7 @@ def main():
 #     loss = 0
    
     test_score = 0
-    for global_step in range(1):
+    for global_step in range(1): ## Q 為什麼需要這行
         model_train.train()
         for inputs_id, mask, label, token_type_ids, first_input, first_mask, ll, position_ids in tqdm(train_dataloader):
             batch += 1
@@ -403,11 +395,11 @@ def main():
             loss.backward()
             
             if batch % 20 == 0:
-                writer.add_scalar('reward', temp_score/batch_size/20, batch)
+                # writer.add_scalar('reward', temp_score/batch_size/20, batch)
                 wandb.log({"reward": temp_score/batch_size/20}, batch)
                 # writer.add_scalar('test_reward', test_score/20, batch)
                 # wandb.log({"test_reward": test_score/20}, batch)
-                writer.add_scalar('loss', loss, batch)
+                # writer.add_scalar('loss', loss, batch)
                 wandb.log({"loss": loss}, batch)
                 print("Reward:%.2f,    test:%.6f   "%(temp_score/batch_size/20))
                 # test_score = 0
@@ -419,7 +411,7 @@ def main():
 #                 loss = 0
             if batch % 1000 == 0:
                 torch.save(
-                    {k: (v.cpu() if v is not None else None)  # save to cpu tensors
+                    {k: (v.cpu() if v is not None else None)  # save to cpu tensor
                         for k, v in model_train.state_dict().items()},
                     os.path.join('./models', args.save, 
                             f'model-{batch}.pkl'))

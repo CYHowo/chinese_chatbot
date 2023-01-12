@@ -10,6 +10,7 @@ import tensorflow as tf
 
 class ChineseDataset(Dataset):
     def __init__(self, data_pth, toker, maxline=False):
+        ## toker = tokenizer
         fout = open(data_pth, 'r')
         lines = fout.readlines()
         tokens = []
@@ -26,32 +27,30 @@ class ChineseDataset(Dataset):
         
         for i in tqdm(range(maxline)):
             try:
+                ## Q 只找最後一句？
                 src = (lines[i].split('\t')[0]).strip()
                 tgt = (lines[i].split('\t')[1]).strip()
-                src_token = toker.encode(src)
+                src_token = toker.encode(src) 
                 tgt_token = toker.encode(tgt)
+                
+                ## 另一種寫法?
+                # src, tgt = (lines[i].split('\t')[0])
+                # src_token = toker.encode(src.strip()) 
+                # tgt_token = toker.encode(tgt.strip())
             except: # only src
                 continue
            
-            # try:
-            #     src_token = toker.encode(src)
-            #     tgt_token = toker.encode(tgt)
-            # except:
-            #     continue # nan
+            ## Q 這邊在做什麼嘞?
             temp_token = src_token + tgt_token[1:] # CLS sent1 SEP sent2 SEP 
-            # temp_mask = [1] * len(temp_token)
             temp_mask = [1 for i in range(len(temp_token))]
-            # temp_label = [-100] * (len(src_token)) + tgt_token[1:]
             temp_label = [-100 for i in range(len(src_token))] + tgt_token[1:] 
-#             temp_label = temp_token  ## change to all sentences
-            if len(temp_token) >= 40: continue
-            # if len(src_token) >= 25: continue
+            if len(temp_token) >= 40: continue ## Q 寫這句的用意?
             tokens.append(temp_token[:])
             masks.append(temp_mask[:])
             labels.append(temp_label[:])
             first_inputs.append(src_token[:-1])
             first_masks.append([1 for i in range(len(src_token[:-1]))] )
-            self.ll.append(len(src_token[:-1])) ##?
+            self.ll.append(len(src_token[:-1])) ##? Q 
             token_type_ids.append([0 for i in range(len(src_token))] + [1 for i in range(len(tgt_token[1:]))])
             position_ids.append(list(range(len(temp_token))))
 
@@ -65,7 +64,7 @@ class ChineseDataset(Dataset):
         # self.position_id = pad_sequence([torch.LongTensor(x) for x in position_ids], batch_first=True, padding_value=0)
         self.post = torch.LongTensor(tf.keras.preprocessing.sequence.pad_sequences([torch.LongTensor(x) for x in tokens], value=0))
         self.mask = torch.LongTensor(tf.keras.preprocessing.sequence.pad_sequences([torch.LongTensor(x) for x in masks], value=0))
-        self.label = torch.LongTensor(tf.keras.preprocessing.sequence.pad_sequences([torch.LongTensor(x) for x in labels], value=-100))
+        self.label = torch.LongTensor(tf.keras.preprocessing.sequence.pad_sequences([torch.LongTensor(x) for x in labels], value=-100)) ## Q 為什麼這個value是-100
         self.first_input = torch.LongTensor(tf.keras.preprocessing.sequence.pad_sequences([torch.LongTensor(x) for x in first_inputs], value=0))
         self.first_mask = torch.LongTensor(tf.keras.preprocessing.sequence.pad_sequences([torch.LongTensor(x) for x in first_masks], value=0))
         self.token_type_id = torch.LongTensor(tf.keras.preprocessing.sequence.pad_sequences([torch.LongTensor(x) for x in token_type_ids], value=0))
