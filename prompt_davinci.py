@@ -1,4 +1,5 @@
 import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import numpy as np
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
@@ -33,6 +34,16 @@ bad_word = ["4r5e", "5h1t", "5hit", "a55", "anal", "anus", "ar5e", "arrse", "ars
 bad_dict = {}
 for w in bad_word:
     bad_dict[w] = 1
+    
+## emotion dict
+with open("valence_arousal_ch.csv",'r') as f:
+    lines = f.readlines()
+emotion_dict = dict()
+for line in lines[1:]: 
+    ## read from second row
+    _, word, v, _, a, _, _ = line.split(',') ## only use mean of valence and arousal
+    v, a = float(v), float(a)
+    emotion_dict[word] = (v, a)
 
 
 def top_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
@@ -267,13 +278,27 @@ def train(model_train, inputs_id, mask, tokenizer, ll, args, batch_size):
         l = ll[j%inputs_id.shape[0]]
         sent_input.append([tokenizer.decode(inputs_id[j%inputs_id.shape[0]][:l].tolist()), decode_temp_sentence[j%inputs_id.shape[0]], inter_response[j][0]])
     
-    temp_score = []
-    for sens in sent_input:
-        sen = (sens[0] + sens[1] + sens[2]).replace('[SEP]', '').replace('[CLS]', '').replace(' ', '')
-        temp_score.append(len(sens[2]))
-
-
+    
+    ## test length
     # temp_score = []
+    # for sens in sent_input:
+    #     sen = (sens[0] + sens[1] + sens[2]).replace('[SEP]', '').replace('[CLS]', '').replace(' ', '')
+    #     temp_score.append(len(sens[2]))
+
+    ## emotion
+    ## only calculate with postive and negative
+    temp_score = []
+    
+    for sens in sent_input:
+        score = 0
+        freq = 0
+        for word in emotion_dict:
+            freq += sens[2].count(word)
+            if word in sens[2]:
+                # if emotion_dict[word][0] > 4:
+                # freq += 1
+                score += (emotion_dict[word][0]) # only valence (positive/negative)
+        temp_score.append(score) # freqs of valence > 4
 
 #-----------------emotion-----------------------------
 
@@ -320,7 +345,7 @@ def main():
     parser.add_argument("--sample_per_batch", type=int, default=5)
     parser.add_argument("--save", type=str, default="prompt_davinci_emotion")
     parser.add_argument("--model", type=str, default="ckiplab/gpt2-base-chinese")
-    parser.add_argument("--ra", type=float, default=50)  ##??
+    parser.add_argument("--ra", type=float, default=50)  ## Q ??
     parser.add_argument("--inter", type=str, default="gpt", nargs='+', required=True)
     parser.add_argument("--setting", type=int, default=1)
     parser.add_argument("--dependence", type=bool, default=True)
@@ -371,7 +396,7 @@ def main():
     
     print("processing dataset...")
     dataset = ChineseDataset(args.data_path, tokenizer, maxline=40)
-    train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=1) ## num_workers fix to 1
 #     val_dataset = ChineseDataset(args.val_data_path, tokenizer)
 #     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
     

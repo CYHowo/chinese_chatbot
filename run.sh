@@ -1,0 +1,1 @@
+python prompt_davinci.py --inter gpt --api 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

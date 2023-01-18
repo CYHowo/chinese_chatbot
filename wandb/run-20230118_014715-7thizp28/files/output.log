@@ -1,0 +1,25 @@
+
+[34m[1mwandb[39m[22m: [33mWARNING[39m Calling wandb.login() after wandb.init() has no effect.
+processing dataset...
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:00<00:00, 7201.14it/s]
+  0%|                                                                                                                                                                                                              | 0/5 [00:54<?, ?it/s]
+Traceback (most recent call last):
+  File "prompt_davinci.py", line 445, in <module>
+    main()
+  File "prompt_davinci.py", line 415, in main
+    batch_loss, score = train(model_train, first_input, first_mask, tokenizer, ll, args, batch_size)
+  File "prompt_davinci.py", line 260, in train
+    inter_response.extend(make_response(decode_temp_sentence, first_input, args))
+  File "prompt_davinci.py", line 106, in make_response
+    response = openai.Completion.create(
+  File "/home/ncu111527003/anaconda3/envs/chatbot/lib/python3.8/site-packages/openai/api_resources/completion.py", line 25, in create
+    return super().create(*args, **kwargs)
+  File "/home/ncu111527003/anaconda3/envs/chatbot/lib/python3.8/site-packages/openai/api_resources/abstract/engine_api_resource.py", line 153, in create
+    response, _, api_key = requestor.request(
+  File "/home/ncu111527003/anaconda3/envs/chatbot/lib/python3.8/site-packages/openai/api_requestor.py", line 226, in request
+    resp, got_stream = self._interpret_response(result, stream)
+  File "/home/ncu111527003/anaconda3/envs/chatbot/lib/python3.8/site-packages/openai/api_requestor.py", line 599, in _interpret_response
+    self._interpret_response_line(
+  File "/home/ncu111527003/anaconda3/envs/chatbot/lib/python3.8/site-packages/openai/api_requestor.py", line 636, in _interpret_response_line
+    raise error.ServiceUnavailableError(
+openai.error.ServiceUnavailableError: The server is overloaded or not ready yet.

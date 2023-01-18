@@ -50,7 +50,7 @@ class ChineseDataset(Dataset):
             labels.append(temp_label[:])
             first_inputs.append(src_token[:-1])
             first_masks.append([1 for i in range(len(src_token[:-1]))] )
-            self.ll.append(len(src_token[:-1])) ##? Q 
+            self.ll.append(len(src_token[:-1])) ## Q 
             token_type_ids.append([0 for i in range(len(src_token))] + [1 for i in range(len(tgt_token[1:]))])
             position_ids.append(list(range(len(temp_token))))
 
